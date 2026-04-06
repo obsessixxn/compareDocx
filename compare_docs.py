@@ -1,6 +1,6 @@
 """
 Скрипт для сравнения документов из двух папок:
-  - folder_tz/   — документы из ТЗ (эталон)
+  - folder_tz/   — документы из ТЗ 
   - folder_lk/   — документы из ЛК Клиента
 
 Поддерживаемые форматы: .docx, .doc
@@ -31,13 +31,13 @@ FOLDER_LK = Path("folder_lk")   # папка с документами из ЛК
 
 EXTENSIONS = {".docx", ".doc", ".pdf"}
 
-DEBUG = True
+DEBUG = False
 
 
 # ── Извлечение текста ──────────────────────────────────────────────────────────
 
 def extract_text_docx(path: Path) -> str:
-    """Извлекает текст из .docx в порядке документа: параграфы и таблицы вперемешку."""
+
     from docx.text.paragraph import Paragraph as DocxParagraph
     from docx.table import Table as DocxTable
 
@@ -45,17 +45,16 @@ def extract_text_docx(path: Path) -> str:
     parts = []
 
     for element in doc.element.body:
-        tag = element.tag.split("}")[-1]  # убираем namespace URI
+        tag = element.tag.split("}")[-1]  #
         if tag == "p":
-            # Мягкие переносы (Shift+Enter) дают \n внутри paragraph.text — сворачиваем в пробел
+            
             text = DocxParagraph(element, doc).text.replace("\n", " ").strip()
             if text:
                 parts.append(text)
         elif tag == "tbl":
             table = DocxTable(element, doc)
             for row in table.rows:
-                # Объединяем все ячейки строки в одну строку — тогда структура колонок не влияет
-                # (ячейка из одной строки в ТЗ vs объединённая в ЛК дадут одинаковый текст)
+
                 seen_in_row: set = set()
                 cell_texts = []
                 for cell in row.cells:
@@ -71,7 +70,7 @@ def extract_text_docx(path: Path) -> str:
 
 
 def extract_text_doc_antiword(path: Path) -> str:
-    """Извлекает текст из .doc через antiword (должен быть установлен в PATH)."""
+
     result = subprocess.run(
         ["antiword", str(path)],
         capture_output=True, text=True, encoding="utf-8", errors="replace"
@@ -83,10 +82,10 @@ def extract_text_doc_antiword(path: Path) -> str:
 
 
 def extract_text_pdf(path: Path) -> str:
-    """Извлекает текст из .pdf через pdfplumber."""
+
     with pdfplumber.open(path) as pdf:
         pages = [page.extract_text() or "" for page in pdf.pages]
-    # Склеиваем переносы вида "до-\nкумент" → "документ"
+
     text = "\n".join(pages)
     return re.sub(r"-\s*\n\s*", "", text)
 
@@ -230,7 +229,7 @@ def build_report_lines(results: list[FileResult]) -> tuple[list[str], bool]:
     lines.append(f"  Ошибки чтения:               {errors}")
     lines.append("=" * 60)
 
-    # Сначала выводим проблемные файлы, потом корректные
+
     sorted_results = sorted(results, key=lambda r: (r.status == "identical", r.name))
 
     for r in sorted_results:
@@ -241,10 +240,10 @@ def build_report_lines(results: list[FileResult]) -> tuple[list[str], bool]:
             lines.append("  Отклонения ЛК от эталона ТЗ:")
             lines.append("  (- удалено из ТЗ  |  + добавлено в ЛК)")
             for line in r.diff_lines:
-                # Пропускаем служебные строки diff: заголовки файлов и позиционные маркеры
+
                 if line.startswith("---") or line.startswith("+++") or line.startswith("@@"):
                     continue
-                # Показываем только строки с реальными отличиями
+
                 if line.startswith("+") or line.startswith("-"):
                     lines.append("    " + line)
 
@@ -275,9 +274,9 @@ def save_report(results: list[FileResult], output_path: Path) -> None:
     print(f"\nОтчёт сохранён: {output_path.resolve()}")
 
 
-# ── Точка входа ────────────────────────────────────────────────────────────────
 
-REPORT_FILE = Path("report.txt")  # имя файла отчёта
+
+REPORT_FILE = Path("report.txt")  
 
 if __name__ == "__main__":
     for folder in (FOLDER_TZ, FOLDER_LK):
